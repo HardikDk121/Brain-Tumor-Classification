@@ -1,0 +1,56 @@
+Used in BRICS 2025 ONLY cannot be used for cross vaildation or external 
+
+    Masoud Nick Parvar Brain Tumor MRI Dataset
+
+        https://www.kaggle.com/datasets/ahmedhamada0/brain-tumor-detection?select=no
+
+    Sartaj Bhuvaji Brain Tumor Classification MRI Dataset
+
+        https://www.kaggle.com/datasets/sartajbhuvaji/brain-tumor-classification-mri
+
+    Cheng’s Brain Tumor Dataset (FIGSHARE)
+
+        https://figshare.com/articles/dataset/brain_tumor_dataset/1512427
+
+    Ahmed Hamada Brain Tumor Detection Dataset
+
+        https://www.kaggle.com/datasets/ahmedhamada0/brain-tumor-detection?select=no
+
+    ESFIAM Brain Tumor MRI Dataset
+
+        https://www.kaggle.com/datasets/esfiam/brain-tumor-mri-dataset
+
+    Pradeep2665 Brain MRI Dataset
+
+        https://www.kaggle.com/datasets/pradeep2665/brain-mri
+
+    Mohamed Metwaly Sherif Brain Tumor Dataset
+
+        https://www.kaggle.com/datasets/mohamedmetwalysherif/braintumordataset
+
+    Nyalkakadia MR Images of Brain for Tumor Classification Dataset
+
+        https://www.kaggle.com/datasets/nyalkakadia/mr-images-of-brain-for-tumor-classification
+
+    Brima's Brain MRI Dataset
+        https://figshare.com/articles/dataset/Brain_MRI_Dataset/14778750?file=28399209
+
+    IXI Dataset
+        https://brain-development.org/ixi-dataset/
+
+
+
+
+Common in MASOUD NICKPARVAR & BRICS 2025
+
+    Cheng’s Brain Tumor Dataset (FIGSHARE)
+        
+        https://figshare.com/articles/dataset/brain_tumor_dataset/1512427
+
+
+    SARTAJ
+        
+        https://www.kaggle.com/datasets/sartajbhuvaji/brain-tumor-classification-mri
+
+    BRA35H
+        https://www.kaggle.com/datasets/ahmedhamada0/brain-tumor-detection?select=no
