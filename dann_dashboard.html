@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DANN · Brain Tumor MRI Classification · Results Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #080d14;
+  --bg2: #0d1520;
+  --bg3: #111c2b;
+  --card: #0f1a28;
+  --card2: #152030;
+  --border: rgba(0,200,255,0.12);
+  --border2: rgba(0,200,255,0.22);
+  --cyan: #00c8ff;
+  --cyan-dim: rgba(0,200,255,0.15);
+  --cyan-glow: rgba(0,200,255,0.35);
+  --green: #00e5a0;
+  --green-dim: rgba(0,229,160,0.12);
+  --amber: #ffb830;
+  --amber-dim: rgba(255,184,48,0.12);
+  --red: #ff4d6a;
+  --red-dim: rgba(255,77,106,0.12);
+  --purple: #a78bfa;
+  --text: #e2eaf5;
+  --text-dim: #7b94b0;
+  --text-muted: #3d5571;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grid noise texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 1320px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* ── HEADER ── */
+header {
+  padding: 40px 0 32px;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.header-icon {
+  width: 52px; height: 52px;
+  background: linear-gradient(135deg, var(--cyan), #0060ff);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 0 28px rgba(0,200,255,0.4);
+}
+
+.header-text h1 {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.header-text p {
+  color: var(--text-dim);
+  font-size: 13.5px;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+.badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.badge-cyan  { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(0,200,255,0.25); }
+.badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
+.badge-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,184,48,0.25); }
+.badge-purple{ background: rgba(167,139,250,0.1); color: var(--purple); border: 1px solid rgba(167,139,250,0.25); }
+.badge-red   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,77,106,0.25); }
+
+.header-right { margin-left: auto; text-align: right; }
+.header-right .date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── SECTION LABELS ── */
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--border2), transparent);
+}
+
+/* ── KPI CARDS ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 40px;
+}
+
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.kpi-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent, var(--cyan));
+}
+
+.kpi-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.kpi-value {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent, var(--cyan));
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-family: var(--mono);
+}
+
+/* ── FOLD TABLE ── */
+.table-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 40px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+thead {
+  background: var(--card2);
+}
+thead th {
+  padding: 12px 16px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+thead th:first-child { text-align: left; }
+tbody tr {
+  border-bottom: 1px solid rgba(0,200,255,0.05);
+  transition: background 0.15s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(0,200,255,0.04); }
+tbody td {
+  padding: 11px 16px;
+  text-align: right;
+  color: var(--text);
+}
+tbody td:first-child { text-align: left; color: var(--text-dim); }
+
+.star { color: var(--cyan); }
+.val-high { color: var(--green); }
+.val-warn { color: var(--amber); }
+.val-mean {
+  background: var(--bg3);
+  font-weight: 700;
+}
+.val-mean td { color: var(--cyan); }
+.val-mean td:first-child { color: var(--text-dim); }
+
+/* Confusion mini */
+.cm-cell {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+.cm-tp { background: rgba(0,229,160,0.15); color: var(--green); }
+.cm-tn { background: rgba(0,200,255,0.1);  color: var(--cyan); }
+.cm-fp { background: rgba(255,184,48,0.12); color: var(--amber); }
+.cm-fn { background: rgba(255,77,106,0.12); color: var(--red); }
+
+/* ── TAB NAV ── */
+.tab-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn:hover { border-color: var(--border2); color: var(--text); }
+.tab-btn.active {
+  background: var(--cyan-dim);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* ── CHARTS ── */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  position: relative;
+}
+
+.chart-title {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chart-canvas-wrap { position: relative; height: 220px; }
+
+/* Full width chart */
+.chart-card.full { grid-column: 1 / -1; }
+.chart-card.full .chart-canvas-wrap { height: 240px; }
+
+/* ── DANN-SPECIFIC PANEL ── */
+.dann-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* ── EXTERNAL VALIDATION ── */
+.ext-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.ext-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.ext-card.warn-card { border-color: rgba(255,184,48,0.3); background: rgba(255,184,48,0.03); }
+.ext-card.ok-card { border-color: rgba(0,229,160,0.2); }
+
+.ext-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ext-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ext-metrics { display: flex; flex-direction: column; gap: 10px; }
+.ext-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ext-metric-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  width: 80px;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+.ext-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.ext-bar { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+.ext-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  width: 46px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.insight-box {
+  background: rgba(255,184,48,0.06);
+  border: 1px solid rgba(255,184,48,0.2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--amber);
+  line-height: 1.6;
+}
+.insight-box.insight-ok {
+  background: rgba(0,229,160,0.05);
+  border-color: rgba(0,229,160,0.2);
+  color: var(--green);
+}
+
+/* ── FOLD SELECTOR ── */
+.fold-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.fold-selector span {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ── CONFUSION MATRIX ── */
+.cm-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 40px;
+}
+.cm-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  text-align: center;
+}
+.cm-fold-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+.cm-matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.cm-box {
+  border-radius: 6px;
+  padding: 10px 4px;
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+}
+.cm-box small {
+  display: block;
+  font-size: 8.5px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  opacity: 0.7;
+}
+.box-tp { background: rgba(0,229,160,0.12); color: var(--green); }
+.box-tn { background: rgba(0,200,255,0.1);  color: var(--cyan); }
+.box-fp { background: rgba(255,184,48,0.1); color: var(--amber); }
+.box-fn { background: rgba(255,77,106,0.1); color: var(--red); }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+  margin-top: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+footer .foot-left {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+footer .foot-right {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.kpi-card, .chart-card, .ext-card, .cm-card {
+  animation: fadeUp 0.5s ease both;
+}
+.kpi-card:nth-child(1) { animation-delay: 0.05s; }
+.kpi-card:nth-child(2) { animation-delay: 0.10s; }
+.kpi-card:nth-child(3) { animation-delay: 0.15s; }
+.kpi-card:nth-child(4) { animation-delay: 0.20s; }
+.kpi-card:nth-child(5) { animation-delay: 0.25s; }
+.kpi-card:nth-child(6) { animation-delay: 0.30s; }
+
+/* Responsive */
+@media (max-width: 860px) {
+  .chart-grid, .dann-grid, .ext-grid { grid-template-columns: 1fr; }
+  .chart-card.full { grid-column: 1; }
+  .cm-grid { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 540px) {
+  .cm-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-value { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div class="header-icon">🧠</div>
+  <div class="header-text">
+    <h1>Domain Adversarial Neural Network<br>Brain Tumor MRI Classification</h1>
+    <p>ResNet-18 + GRL · 5-Fold Stratified Cross-Validation · BRISC 2025 → Figshare Domain Adaptation</p>
+    <div class="badges">
+      <span class="badge badge-cyan">DANN</span>
+      <span class="badge badge-cyan">ResNet-18</span>
+      <span class="badge badge-green">PyTorch</span>
+      <span class="badge badge-purple">5-Fold CV</span>
+      <span class="badge badge-amber">25 Epochs</span>
+      <span class="badge badge-cyan">Binary Classification</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="date">MARCH 2026</div>
+    <div class="date" style="margin-top:4px; color: var(--text-muted);">Report v1.0</div>
+  </div>
+</header>
+
+<!-- KPI SECTION -->
+<div class="section-label">01 · Cross-Validation Summary (mean ± std, 5 folds)</div>
+<div class="kpi-grid">
+  <div class="kpi-card" style="--accent: var(--cyan)">
+    <div class="kpi-label">AUC-ROC</div>
+    <div class="kpi-value">0.9999</div>
+    <div class="kpi-sub">± 0.0001</div>
+  </div>
+  <div class="kpi-card" style="--accent: var(--green)">
+    <div class="kpi-label">Accuracy</div>
+    <div class="kpi-value">99.45%</div>
+    <div class="kpi-sub">± 0.19%</div>
+  </div>
+  <div class="kpi-card" style="--accent: var(--green)">
+    <div class="kpi-label">Sensitivity</div>
+    <div class="kpi-value">99.94%</div>
+    <div class="kpi-sub">± 0.09% · Recall</div>
+  </div>
+  <div class="kpi-card" style="--accent: var(--amber)">
+    <div class="kpi-label">Specificity</div>
+    <div class="kpi-value">97.57%</div>
+    <div class="kpi-sub">± 1.12% · TN Rate</div>
+  </div>
+  <div class="kpi-card" style="--accent: var(--cyan)">
+    <div class="kpi-label">F1 Score</div>
+    <div class="kpi-value">99.65%</div>
+    <div class="kpi-sub">± 0.12%</div>
+  </div>
+  <div class="kpi-card" style="--accent: var(--purple)">
+    <div class="kpi-label">Precision</div>
+    <div class="kpi-value">99.38%</div>
+    <div class="kpi-sub">± 0.28%</div>
+  </div>
+</div>
+
+<!-- FOLD TABLE -->
+<div class="section-label">02 · Per-Fold Metrics & Confusion Matrix</div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Fold</th>
+        <th>Best Ep.</th>
+        <th>AUC-ROC</th>
+        <th>Accuracy</th>
+        <th>Sensitivity</th>
+        <th>Specificity</th>
+        <th>F1</th>
+        <th>Precision</th>
+        <th>TP</th>
+        <th>TN</th>
+        <th>FP</th>
+        <th>FN</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Fold 1</td>
+        <td class="badge-cyan" style="color:var(--cyan)">8</td>
+        <td class="val-high">0.999995</td>
+        <td>99.13%</td>
+        <td class="val-high">100.00%</td>
+        <td class="val-warn">95.69%</td>
+        <td>99.46%</td>
+        <td>98.93%</td>
+        <td><span class="cm-cell cm-tp">922</span></td>
+        <td><span class="cm-cell cm-tn">222</span></td>
+        <td><span class="cm-cell cm-fp">10</span></td>
+        <td><span class="cm-cell cm-fn">0</span></td>
+      </tr>
+      <tr>
+        <td>Fold 2</td>
+        <td>8</td>
+        <td class="val-high">1.000000 <span class="star">★</span></td>
+        <td class="val-high">99.57%</td>
+        <td class="val-high">100.00%</td>
+        <td>97.85%</td>
+        <td class="val-high">99.73%</td>
+        <td>99.47%</td>
+        <td><span class="cm-cell cm-tp">932</span></td>
+        <td><span class="cm-cell cm-tn">228</span></td>
+        <td><span class="cm-cell cm-fp">5</span></td>
+        <td><span class="cm-cell cm-fn">0</span></td>
+      </tr>
+      <tr>
+        <td>Fold 3</td>
+        <td>4</td>
+        <td>0.999713</td>
+        <td class="val-high">99.58%</td>
+        <td>99.79%</td>
+        <td class="val-high">98.67%</td>
+        <td class="val-high">99.74%</td>
+        <td class="val-high">99.69%</td>
+        <td><span class="cm-cell cm-tp">958</span></td>
+        <td><span class="cm-cell cm-tn">222</span></td>
+        <td><span class="cm-cell cm-fp">3</span></td>
+        <td><span class="cm-cell cm-fn">2</span></td>
+      </tr>
+      <tr>
+        <td>Fold 4</td>
+        <td>19</td>
+        <td class="val-high">1.000000 <span class="star">★</span></td>
+        <td class="val-high">99.56%</td>
+        <td class="val-high">100.00%</td>
+        <td>97.96%</td>
+        <td>99.72%</td>
+        <td>99.44%</td>
+        <td><span class="cm-cell cm-tp">892</span></td>
+        <td><span class="cm-cell cm-tn">240</span></td>
+        <td><span class="cm-cell cm-fp">5</span></td>
+        <td><span class="cm-cell cm-fn">0</span></td>
+      </tr>
+      <tr>
+        <td>Fold 5</td>
+        <td>6</td>
+        <td class="val-high">0.999958</td>
+        <td>99.41%</td>
+        <td>99.89%</td>
+        <td>97.68%</td>
+        <td>99.62%</td>
+        <td>99.36%</td>
+        <td><span class="cm-cell cm-tp">929</span></td>
+        <td><span class="cm-cell cm-tn">253</span></td>
+        <td><span class="cm-cell cm-fp">6</span></td>
+        <td><span class="cm-cell cm-fn">1</span></td>
+      </tr>
+      <tr class="val-mean">
+        <td>Mean ± σ</td>
+        <td>—</td>
+        <td>0.9999 ± 0.0001</td>
+        <td>99.45% ± 0.19%</td>
+        <td>99.94% ± 0.09%</td>
+        <td>97.57% ± 1.12%</td>
+        <td>99.65% ± 0.12%</td>
+        <td>99.38% ± 0.28%</td>
+        <td colspan="4">—</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- TRAINING CURVES -->
+<div class="section-label">03 · Training Dynamics — Per-Fold Epoch Curves</div>
+<div class="fold-selector">
+  <span>Select fold →</span>
+  <button class="tab-btn active" onclick="selectFold(1, this)">Fold 1</button>
+  <button class="tab-btn" onclick="selectFold(2, this)">Fold 2</button>
+  <button class="tab-btn" onclick="selectFold(3, this)">Fold 3</button>
+  <button class="tab-btn" onclick="selectFold(4, this)">Fold 4</button>
+  <button class="tab-btn" onclick="selectFold(5, this)">Fold 5</button>
+</div>
+
+<div class="chart-grid">
+  <div class="chart-card full">
+    <div class="chart-title">
+      <span>Val AUC · Sensitivity · Specificity</span>
+      <span id="best-epoch-label" class="badge badge-cyan">Best: Ep 8</span>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="perfChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Train Loss vs Validation Loss</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="lossChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Classification Loss vs Domain Adversarial Loss</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="lossCompChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- DANN SECTION -->
+<div class="section-label">04 · DANN Adversarial Dynamics</div>
+<div class="dann-grid">
+  <div class="chart-card">
+    <div class="chart-title">GRL Lambda (α) Annealing Schedule</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="alphaChart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Domain Classifier Accuracy — Source vs Target</div>
+    <div class="chart-canvas-wrap">
+      <canvas id="domainChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- CONFUSION MATRICES -->
+<div class="section-label">05 · Confusion Matrices (All Folds)</div>
+<div class="cm-grid">
+  <div class="cm-card">
+    <div class="cm-fold-label">FOLD 1</div>
+    <div class="cm-matrix">
+      <div class="cm-box box-tp">922<small>TP</small></div>
+      <div class="cm-box box-fp">10<small>FP</small></div>
+      <div class="cm-box box-fn">0<small>FN</small></div>
+      <div class="cm-box box-tn">222<small>TN</small></div>
+    </div>
+  </div>
+  <div class="cm-card">
+    <div class="cm-fold-label">FOLD 2</div>
+    <div class="cm-matrix">
+      <div class="cm-box box-tp">932<small>TP</small></div>
+      <div class="cm-box box-fp">5<small>FP</small></div>
+      <div class="cm-box box-fn">0<small>FN</small></div>
+      <div class="cm-box box-tn">228<small>TN</small></div>
+    </div>
+  </div>
+  <div class="cm-card">
+    <div class="cm-fold-label">FOLD 3</div>
+    <div class="cm-matrix">
+      <div class="cm-box box-tp">958<small>TP</small></div>
+      <div class="cm-box box-fp">3<small>FP</small></div>
+      <div class="cm-box box-fn">2<small>FN</small></div>
+      <div class="cm-box box-tn">222<small>TN</small></div>
+    </div>
+  </div>
+  <div class="cm-card">
+    <div class="cm-fold-label">FOLD 4</div>
+    <div class="cm-matrix">
+      <div class="cm-box box-tp">892<small>TP</small></div>
+      <div class="cm-box box-fp">5<small>FP</small></div>
+      <div class="cm-box box-fn">0<small>FN</small></div>
+      <div class="cm-box box-tn">240<small>TN</small></div>
+    </div>
+  </div>
+  <div class="cm-card">
+    <div class="cm-fold-label">FOLD 5</div>
+    <div class="cm-matrix">
+      <div class="cm-box box-tp">929<small>TP</small></div>
+      <div class="cm-box box-fp">6<small>FP</small></div>
+      <div class="cm-box box-fn">1<small>FN</small></div>
+      <div class="cm-box box-tn">253<small>TN</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- EXTERNAL VALIDATION -->
+<div class="section-label">06 · External Dataset Validation (Domain Generalization)</div>
+<div class="ext-grid">
+
+  <div class="ext-card warn-card">
+    <div class="ext-title">
+      <span class="ext-dot" style="background:var(--amber)"></span>
+      <span style="color:var(--amber)">Val_Ayesha Dataset</span>
+      <span class="badge badge-amber">Domain Shift ⚠</span>
+    </div>
+    <div class="ext-metrics">
+      <div class="ext-row">
+        <span class="ext-metric-label">AUC-ROC</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:99.5%; background: var(--green);"></div></div>
+        <span class="ext-val" style="color:var(--green)">0.995</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Recall</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:100%; background: var(--green);"></div></div>
+        <span class="ext-val" style="color:var(--green)">1.000</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Accuracy</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:44.2%; background: var(--red);"></div></div>
+        <span class="ext-val" style="color:var(--red)">44.2%</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Specificity</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:35.9%; background: var(--red);"></div></div>
+        <span class="ext-val" style="color:var(--red)">35.9%</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">F1</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:31.6%; background: var(--red);"></div></div>
+        <span class="ext-val" style="color:var(--red)">0.316</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Precision</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:18.8%; background: var(--red);"></div></div>
+        <span class="ext-val" style="color:var(--red)">18.8%</span>
+      </div>
+    </div>
+    <div class="insight-box">
+      ⚠ <strong>Classic domain shift signature:</strong> near-perfect AUC (0.995) with collapsed specificity (35.9%) indicates the model's discriminative representations remain strong, but the classification threshold is miscalibrated for this scanner/acquisition domain. DANN adaptation objective is directly targeting this gap.
+    </div>
+  </div>
+
+  <div class="ext-card ok-card">
+    <div class="ext-title">
+      <span class="ext-dot" style="background:var(--green)"></span>
+      <span style="color:var(--green)">Val_Alam Dataset</span>
+      <span class="badge badge-amber">Degenerate ⚠</span>
+    </div>
+    <div class="ext-metrics">
+      <div class="ext-row">
+        <span class="ext-metric-label">AUC-ROC</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:0%; background: var(--red);"></div></div>
+        <span class="ext-val" style="color:var(--red)">0.000</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Recall</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:100%; background: var(--green);"></div></div>
+        <span class="ext-val" style="color:var(--green)">1.000</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Accuracy</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:100%; background: var(--green);"></div></div>
+        <span class="ext-val" style="color:var(--green)">100%</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Specificity</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:0%; background: var(--red);"></div></div>
+        <span class="ext-val" style="color:var(--red)">0.000</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">F1</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:100%; background: var(--green);"></div></div>
+        <span class="ext-val" style="color:var(--green)">1.000</span>
+      </div>
+      <div class="ext-row">
+        <span class="ext-metric-label">Precision</span>
+        <div class="ext-bar-wrap"><div class="ext-bar" style="width:100%; background: var(--green);"></div></div>
+        <span class="ext-val" style="color:var(--green)">1.000</span>
+      </div>
+    </div>
+    <div class="insight-box">
+      ⚠ <strong>Degenerate result — likely single-class dataset:</strong> Acc=100%, Spec=0.0, AUC=0.0 with Recall=1.0 is consistent with Val_Alam containing only tumor (positive) samples. AUROC=0.0 is undefined when no negatives exist. <strong>Dataset composition must be verified before reporting this result.</strong>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-left">
+    DANN · ResNet-18 · GRL Lambda Annealing · StratifiedGroupKFold<br>
+    Source: BRISC 2025 → Target: Figshare Brain Tumor MRI<br>
+    Hardik · Kushal · Hemanshu — Principal ML Data Engineering
+  </div>
+  <div class="foot-right">
+    MARCH 29 2026 · v1.0<br>
+    Google Colab T4 GPU
+  </div>
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────
+const EPOCH_DATA = {"1": [{"ep": 0, "train_loss": 1.5667, "val_loss": 0.0154, "val_auc": 0.9999, "val_acc": 0.9931, "val_sens": 0.9989, "val_spec": 0.9698, "val_f1": 0.9957, "class_loss": 0.1094, "domain_loss": 1.4573, "domain_acc_src": 0.4456, "domain_acc_tgt": 0.5578, "alpha": 0.0987, "is_best": true}, {"ep": 1, "train_loss": 1.4851, "val_loss": 0.0209, "val_auc": 0.99974, "val_acc": 0.9913, "val_sens": 0.9957, "val_spec": 0.9741, "val_f1": 0.9946, "class_loss": 0.0375, "domain_loss": 1.4475, "domain_acc_src": 0.4634, "domain_acc_tgt": 0.5272, "alpha": 0.2898, "is_best": false}, {"ep": 2, "train_loss": 1.3959, "val_loss": 0.0178, "val_auc": 0.99985, "val_acc": 0.9922, "val_sens": 0.9978, "val_spec": 0.9741, "val_f1": 0.9957, "class_loss": 0.0283, "domain_loss": 1.3676, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.5, "is_best": false}, {"ep": 3, "train_loss": 1.3254, "val_loss": 0.0227, "val_auc": 0.99983, "val_acc": 0.9922, "val_sens": 0.9978, "val_spec": 0.9741, "val_f1": 0.9957, "class_loss": 0.0418, "domain_loss": 1.2836, "domain_acc_src": 0.5203, "domain_acc_tgt": 0.4797, "alpha": 0.6457, "is_best": false}, {"ep": 4, "train_loss": 1.3184, "val_loss": 0.0246, "val_auc": 0.99985, "val_acc": 0.9922, "val_sens": 0.9967, "val_spec": 0.9784, "val_f1": 0.9956, "class_loss": 0.0434, "domain_loss": 1.275, "domain_acc_src": 0.529, "domain_acc_tgt": 0.471, "alpha": 0.7311, "is_best": false}, {"ep": 5, "train_loss": 1.3045, "val_loss": 0.0179, "val_auc": 0.99991, "val_acc": 0.9922, "val_sens": 0.9978, "val_spec": 0.9741, "val_f1": 0.9957, "class_loss": 0.0247, "domain_loss": 1.2798, "domain_acc_src": 0.5362, "domain_acc_tgt": 0.4638, "alpha": 0.7834, "is_best": false}, {"ep": 6, "train_loss": 1.279, "val_loss": 0.0253, "val_auc": 0.99992, "val_acc": 0.9896, "val_sens": 0.9956, "val_spec": 0.9698, "val_f1": 0.9934, "class_loss": 0.0492, "domain_loss": 1.2298, "domain_acc_src": 0.5435, "domain_acc_tgt": 0.4565, "alpha": 0.8209, "is_best": false}, {"ep": 7, "train_loss": 1.2598, "val_loss": 0.0173, "val_auc": 0.99994, "val_acc": 0.9913, "val_sens": 0.9978, "val_spec": 0.9698, "val_f1": 0.9948, "class_loss": 0.025, "domain_loss": 1.2348, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8494, "is_best": false}, {"ep": 8, "train_loss": 1.2479, "val_loss": 0.0165, "val_auc": 1.0, "val_acc": 0.9913, "val_sens": 0.9989, "val_spec": 0.9569, "val_f1": 0.9946, "class_loss": 0.027, "domain_loss": 1.2209, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8716, "is_best": true}, {"ep": 9, "train_loss": 1.2434, "val_loss": 0.0246, "val_auc": 0.99994, "val_acc": 0.9913, "val_sens": 0.9978, "val_spec": 0.9655, "val_f1": 0.9946, "class_loss": 0.0384, "domain_loss": 1.205, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8893, "is_best": false}, {"ep": 10, "train_loss": 1.2409, "val_loss": 0.0226, "val_auc": 0.99993, "val_acc": 0.9922, "val_sens": 0.9978, "val_spec": 0.9741, "val_f1": 0.9957, "class_loss": 0.0329, "domain_loss": 1.2079, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9036, "is_best": false}, {"ep": 11, "train_loss": 1.2426, "val_loss": 0.0233, "val_auc": 0.99991, "val_acc": 0.9913, "val_sens": 0.9967, "val_spec": 0.9698, "val_f1": 0.9945, "class_loss": 0.0382, "domain_loss": 1.2044, "domain_acc_src": 0.5072, "domain_acc_tgt": 0.4928, "alpha": 0.9152, "is_best": false}, {"ep": 12, "train_loss": 1.2319, "val_loss": 0.0281, "val_auc": 0.99991, "val_acc": 0.9913, "val_sens": 0.9967, "val_spec": 0.9698, "val_f1": 0.9945, "class_loss": 0.0417, "domain_loss": 1.1902, "domain_acc_src": 0.4928, "domain_acc_tgt": 0.5072, "alpha": 0.9246, "is_best": false}, {"ep": 13, "train_loss": 1.2384, "val_loss": 0.0241, "val_auc": 0.99989, "val_acc": 0.9913, "val_sens": 0.9967, "val_spec": 0.9698, "val_f1": 0.9945, "class_loss": 0.0338, "domain_loss": 1.2046, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9323, "is_best": false}, {"ep": 14, "train_loss": 1.2238, "val_loss": 0.0236, "val_auc": 0.99989, "val_acc": 0.9896, "val_sens": 0.9956, "val_spec": 0.9655, "val_f1": 0.9934, "class_loss": 0.0384, "domain_loss": 1.1854, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9386, "is_best": false}, {"ep": 15, "train_loss": 1.2316, "val_loss": 0.025, "val_auc": 0.99993, "val_acc": 0.9896, "val_sens": 0.9956, "val_spec": 0.9655, "val_f1": 0.9934, "class_loss": 0.04, "domain_loss": 1.1916, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9437, "is_best": false}, {"ep": 16, "train_loss": 1.2307, "val_loss": 0.026, "val_auc": 0.99992, "val_acc": 0.9904, "val_sens": 0.9967, "val_spec": 0.9655, "val_f1": 0.9939, "class_loss": 0.0408, "domain_loss": 1.1899, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9479, "is_best": false}, {"ep": 17, "train_loss": 1.2261, "val_loss": 0.0251, "val_auc": 0.99993, "val_acc": 0.9896, "val_sens": 0.9956, "val_spec": 0.9655, "val_f1": 0.9934, "class_loss": 0.0408, "domain_loss": 1.1853, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9513, "is_best": false}, {"ep": 18, "train_loss": 1.2259, "val_loss": 0.0237, "val_auc": 0.99993, "val_acc": 0.9896, "val_sens": 0.9956, "val_spec": 0.9655, "val_f1": 0.9934, "class_loss": 0.036, "domain_loss": 1.1899, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9542, "is_best": false}, {"ep": 19, "train_loss": 1.2296, "val_loss": 0.0296, "val_auc": 0.99989, "val_acc": 0.9887, "val_sens": 0.9945, "val_spec": 0.9655, "val_f1": 0.9928, "class_loss": 0.046, "domain_loss": 1.1836, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9565, "is_best": false}, {"ep": 20, "train_loss": 1.2289, "val_loss": 0.0256, "val_auc": 0.99991, "val_acc": 0.9896, "val_sens": 0.9956, "val_spec": 0.9655, "val_f1": 0.9934, "class_loss": 0.0402, "domain_loss": 1.1887, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9585, "is_best": false}, {"ep": 21, "train_loss": 1.228, "val_loss": 0.0263, "val_auc": 0.99992, "val_acc": 0.9887, "val_sens": 0.9956, "val_spec": 0.9612, "val_f1": 0.9929, "class_loss": 0.0418, "domain_loss": 1.1862, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9602, "is_best": false}, {"ep": 22, "train_loss": 1.2272, "val_loss": 0.0296, "val_auc": 0.9999, "val_acc": 0.9887, "val_sens": 0.9945, "val_spec": 0.9655, "val_f1": 0.9928, "class_loss": 0.0462, "domain_loss": 1.181, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9616, "is_best": false}, {"ep": 23, "train_loss": 1.2207, "val_loss": 0.0269, "val_auc": 0.99991, "val_acc": 0.9896, "val_sens": 0.9956, "val_spec": 0.9655, "val_f1": 0.9934, "class_loss": 0.0413, "domain_loss": 1.1794, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9629, "is_best": false}, {"ep": 24, "train_loss": 1.2215, "val_loss": 0.0289, "val_auc": 0.9999, "val_acc": 0.9887, "val_sens": 0.9945, "val_spec": 0.9655, "val_f1": 0.9928, "class_loss": 0.0459, "domain_loss": 1.1756, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.964, "is_best": false}], "2": [{"ep": 0, "train_loss": 1.6226, "val_loss": 0.025, "val_auc": 0.99979, "val_acc": 0.9861, "val_sens": 0.9978, "val_spec": 0.9267, "val_f1": 0.9924, "class_loss": 0.1434, "domain_loss": 1.4792, "domain_acc_src": 0.4337, "domain_acc_tgt": 0.5663, "alpha": 0.0987, "is_best": true}, {"ep": 1, "train_loss": 1.4869, "val_loss": 0.0247, "val_auc": 0.99984, "val_acc": 0.9896, "val_sens": 0.9978, "val_spec": 0.9353, "val_f1": 0.9942, "class_loss": 0.0477, "domain_loss": 1.4392, "domain_acc_src": 0.4643, "domain_acc_tgt": 0.5357, "alpha": 0.2898, "is_best": false}, {"ep": 2, "train_loss": 1.3901, "val_loss": 0.0205, "val_auc": 0.99987, "val_acc": 0.9922, "val_sens": 0.9978, "val_spec": 0.9569, "val_f1": 0.9957, "class_loss": 0.0285, "domain_loss": 1.3616, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.5, "is_best": false}, {"ep": 3, "train_loss": 1.3439, "val_loss": 0.0161, "val_auc": 0.99994, "val_acc": 0.9948, "val_sens": 1.0, "val_spec": 0.9655, "val_f1": 0.9973, "class_loss": 0.0208, "domain_loss": 1.3231, "domain_acc_src": 0.5072, "domain_acc_tgt": 0.4928, "alpha": 0.6457, "is_best": false}, {"ep": 4, "train_loss": 1.3246, "val_loss": 0.0139, "val_auc": 0.99999, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9741, "val_f1": 0.9978, "class_loss": 0.0159, "domain_loss": 1.3087, "domain_acc_src": 0.5145, "domain_acc_tgt": 0.4855, "alpha": 0.7311, "is_best": false}, {"ep": 5, "train_loss": 1.3254, "val_loss": 0.0142, "val_auc": 0.99997, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9741, "val_f1": 0.9978, "class_loss": 0.0166, "domain_loss": 1.3088, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.7834, "is_best": false}, {"ep": 6, "train_loss": 1.2944, "val_loss": 0.0113, "val_auc": 0.99999, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9741, "val_f1": 0.9978, "class_loss": 0.0113, "domain_loss": 1.2831, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8209, "is_best": false}, {"ep": 7, "train_loss": 1.2793, "val_loss": 0.0139, "val_auc": 0.99999, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9741, "val_f1": 0.9978, "class_loss": 0.0161, "domain_loss": 1.2632, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8494, "is_best": false}, {"ep": 8, "train_loss": 1.2644, "val_loss": 0.0104, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0099, "domain_loss": 1.2545, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8716, "is_best": true}, {"ep": 9, "train_loss": 1.2679, "val_loss": 0.0119, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0123, "domain_loss": 1.2556, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8893, "is_best": false}, {"ep": 10, "train_loss": 1.258, "val_loss": 0.011, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0097, "domain_loss": 1.2483, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9036, "is_best": false}, {"ep": 11, "train_loss": 1.2575, "val_loss": 0.0109, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0099, "domain_loss": 1.2476, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9152, "is_best": false}, {"ep": 12, "train_loss": 1.2568, "val_loss": 0.0119, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0113, "domain_loss": 1.2455, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9246, "is_best": false}, {"ep": 13, "train_loss": 1.2576, "val_loss": 0.0104, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0094, "domain_loss": 1.2482, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9323, "is_best": false}, {"ep": 14, "train_loss": 1.2547, "val_loss": 0.0099, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0089, "domain_loss": 1.2458, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9386, "is_best": false}, {"ep": 15, "train_loss": 1.2548, "val_loss": 0.01, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0091, "domain_loss": 1.2457, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9437, "is_best": false}, {"ep": 16, "train_loss": 1.2527, "val_loss": 0.0096, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2440, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9479, "is_best": false}, {"ep": 17, "train_loss": 1.2522, "val_loss": 0.0098, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0088, "domain_loss": 1.2434, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9513, "is_best": false}, {"ep": 18, "train_loss": 1.2521, "val_loss": 0.0096, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2434, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9542, "is_best": false}, {"ep": 19, "train_loss": 1.252, "val_loss": 0.0097, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2433, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9565, "is_best": false}, {"ep": 20, "train_loss": 1.2519, "val_loss": 0.0097, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2432, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9585, "is_best": false}, {"ep": 21, "train_loss": 1.2519, "val_loss": 0.0097, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2432, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9602, "is_best": false}, {"ep": 22, "train_loss": 1.2519, "val_loss": 0.0097, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2432, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9616, "is_best": false}, {"ep": 23, "train_loss": 1.2519, "val_loss": 0.0097, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2432, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9629, "is_best": false}, {"ep": 24, "train_loss": 1.2519, "val_loss": 0.0097, "val_auc": 1.0, "val_acc": 0.9957, "val_sens": 1.0, "val_spec": 0.9785, "val_f1": 0.9978, "class_loss": 0.0087, "domain_loss": 1.2432, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.964, "is_best": false}], "3": [{"ep": 0, "train_loss": 1.6011, "val_loss": 0.0217, "val_auc": 0.99981, "val_acc": 0.9922, "val_sens": 1.0, "val_spec": 0.9267, "val_f1": 0.9958, "class_loss": 0.1123, "domain_loss": 1.4888, "domain_acc_src": 0.4527, "domain_acc_tgt": 0.5473, "alpha": 0.0987, "is_best": false}, {"ep": 1, "train_loss": 1.4978, "val_loss": 0.0156, "val_auc": 0.99979, "val_acc": 0.9922, "val_sens": 0.9979, "val_spec": 0.9692, "val_f1": 0.9958, "class_loss": 0.0356, "domain_loss": 1.4622, "domain_acc_src": 0.4541, "domain_acc_tgt": 0.5459, "alpha": 0.2898, "is_best": true}, {"ep": 2, "train_loss": 1.4039, "val_loss": 0.0217, "val_auc": 0.99981, "val_acc": 0.9922, "val_sens": 0.9989, "val_spec": 0.9538, "val_f1": 0.9954, "class_loss": 0.0293, "domain_loss": 1.3746, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.5, "is_best": false}, {"ep": 3, "train_loss": 1.3382, "val_loss": 0.017, "val_auc": 0.99978, "val_acc": 0.9931, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9964, "class_loss": 0.0215, "domain_loss": 1.3167, "domain_acc_src": 0.5101, "domain_acc_tgt": 0.4899, "alpha": 0.6457, "is_best": false}, {"ep": 4, "train_loss": 1.3187, "val_loss": 0.0121, "val_auc": 0.99971, "val_acc": 0.9958, "val_sens": 0.9979, "val_spec": 0.9867, "val_f1": 0.9974, "class_loss": 0.0112, "domain_loss": 1.3075, "domain_acc_src": 0.5072, "domain_acc_tgt": 0.4928, "alpha": 0.7311, "is_best": true}, {"ep": 5, "train_loss": 1.3027, "val_loss": 0.0149, "val_auc": 0.99967, "val_acc": 0.995, "val_sens": 0.9979, "val_spec": 0.9846, "val_f1": 0.997, "class_loss": 0.0163, "domain_loss": 1.2864, "domain_acc_src": 0.5072, "domain_acc_tgt": 0.4928, "alpha": 0.7834, "is_best": false}, {"ep": 6, "train_loss": 1.2885, "val_loss": 0.013, "val_auc": 0.9997, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0133, "domain_loss": 1.2752, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8209, "is_best": false}, {"ep": 7, "train_loss": 1.273, "val_loss": 0.0146, "val_auc": 0.99965, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.016, "domain_loss": 1.257, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8494, "is_best": false}, {"ep": 8, "train_loss": 1.263, "val_loss": 0.0158, "val_auc": 0.99968, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0168, "domain_loss": 1.2462, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8716, "is_best": false}, {"ep": 9, "train_loss": 1.2586, "val_loss": 0.0135, "val_auc": 0.99963, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0135, "domain_loss": 1.2451, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8893, "is_best": false}, {"ep": 10, "train_loss": 1.2553, "val_loss": 0.0138, "val_auc": 0.99968, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0131, "domain_loss": 1.2422, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9036, "is_best": false}, {"ep": 11, "train_loss": 1.2549, "val_loss": 0.0136, "val_auc": 0.9997, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.013, "domain_loss": 1.2419, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9152, "is_best": false}, {"ep": 12, "train_loss": 1.2538, "val_loss": 0.0134, "val_auc": 0.99968, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0128, "domain_loss": 1.2410, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9246, "is_best": false}, {"ep": 13, "train_loss": 1.2534, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2410, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9323, "is_best": false}, {"ep": 14, "train_loss": 1.2528, "val_loss": 0.0128, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0122, "domain_loss": 1.2406, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9386, "is_best": false}, {"ep": 15, "train_loss": 1.2525, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2401, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9437, "is_best": false}, {"ep": 16, "train_loss": 1.252, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2396, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9479, "is_best": false}, {"ep": 17, "train_loss": 1.2518, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2394, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9513, "is_best": false}, {"ep": 18, "train_loss": 1.2517, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2393, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9542, "is_best": false}, {"ep": 19, "train_loss": 1.2516, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2392, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9565, "is_best": false}, {"ep": 20, "train_loss": 1.2515, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2391, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9585, "is_best": false}, {"ep": 21, "train_loss": 1.2515, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2391, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9602, "is_best": false}, {"ep": 22, "train_loss": 1.2514, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2390, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9616, "is_best": false}, {"ep": 23, "train_loss": 1.2514, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2390, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9629, "is_best": false}, {"ep": 24, "train_loss": 1.2514, "val_loss": 0.013, "val_auc": 0.99966, "val_acc": 0.9941, "val_sens": 0.9979, "val_spec": 0.9769, "val_f1": 0.9965, "class_loss": 0.0124, "domain_loss": 1.2390, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.964, "is_best": false}], "4": [{"ep": 0, "train_loss": 1.6197, "val_loss": 0.0259, "val_auc": 0.99987, "val_acc": 0.9851, "val_sens": 0.9978, "val_spec": 0.9102, "val_f1": 0.9915, "class_loss": 0.1282, "domain_loss": 1.4915, "domain_acc_src": 0.4481, "domain_acc_tgt": 0.5519, "alpha": 0.0987, "is_best": true}, {"ep": 1, "train_loss": 1.4913, "val_loss": 0.0215, "val_auc": 0.99988, "val_acc": 0.9887, "val_sens": 0.9978, "val_spec": 0.9388, "val_f1": 0.9937, "class_loss": 0.0421, "domain_loss": 1.4492, "domain_acc_src": 0.4686, "domain_acc_tgt": 0.5314, "alpha": 0.2898, "is_best": false}, {"ep": 2, "train_loss": 1.401, "val_loss": 0.0186, "val_auc": 0.99994, "val_acc": 0.9921, "val_sens": 0.9989, "val_spec": 0.9551, "val_f1": 0.9957, "class_loss": 0.024, "domain_loss": 1.377, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.5, "is_best": false}, {"ep": 3, "train_loss": 1.3427, "val_loss": 0.0154, "val_auc": 0.99997, "val_acc": 0.9939, "val_sens": 1.0, "val_spec": 0.9592, "val_f1": 0.9967, "class_loss": 0.0172, "domain_loss": 1.325, "domain_acc_src": 0.5072, "domain_acc_tgt": 0.4928, "alpha": 0.6457, "is_best": false}, {"ep": 4, "train_loss": 1.3243, "val_loss": 0.0163, "val_auc": 0.99997, "val_acc": 0.9939, "val_sens": 1.0, "val_spec": 0.9592, "val_f1": 0.9967, "class_loss": 0.0175, "domain_loss": 1.3068, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.7311, "is_best": false}, {"ep": 5, "train_loss": 1.3051, "val_loss": 0.015, "val_auc": 0.99997, "val_acc": 0.9947, "val_sens": 1.0, "val_spec": 0.9633, "val_f1": 0.9971, "class_loss": 0.0154, "domain_loss": 1.2897, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.7834, "is_best": false}, {"ep": 6, "train_loss": 1.2817, "val_loss": 0.0144, "val_auc": 0.99998, "val_acc": 0.9947, "val_sens": 1.0, "val_spec": 0.9633, "val_f1": 0.9971, "class_loss": 0.0143, "domain_loss": 1.2674, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8209, "is_best": false}, {"ep": 7, "train_loss": 1.2667, "val_loss": 0.0137, "val_auc": 0.99998, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0133, "domain_loss": 1.2534, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8494, "is_best": false}, {"ep": 8, "train_loss": 1.2584, "val_loss": 0.0127, "val_auc": 0.99998, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.012, "domain_loss": 1.2464, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8716, "is_best": false}, {"ep": 9, "train_loss": 1.2547, "val_loss": 0.0124, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0115, "domain_loss": 1.2432, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8893, "is_best": false}, {"ep": 10, "train_loss": 1.2534, "val_loss": 0.0124, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0113, "domain_loss": 1.242, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9036, "is_best": false}, {"ep": 11, "train_loss": 1.2526, "val_loss": 0.0124, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0113, "domain_loss": 1.2413, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9152, "is_best": false}, {"ep": 12, "train_loss": 1.2522, "val_loss": 0.0122, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0111, "domain_loss": 1.2411, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9246, "is_best": false}, {"ep": 13, "train_loss": 1.2519, "val_loss": 0.0121, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.011, "domain_loss": 1.2409, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9323, "is_best": false}, {"ep": 14, "train_loss": 1.2517, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2408, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9386, "is_best": false}, {"ep": 15, "train_loss": 1.2516, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2407, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9437, "is_best": false}, {"ep": 16, "train_loss": 1.2515, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2406, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9479, "is_best": false}, {"ep": 17, "train_loss": 1.2515, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2406, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9513, "is_best": false}, {"ep": 18, "train_loss": 1.2515, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2406, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9542, "is_best": false}, {"ep": 19, "train_loss": 1.2515, "val_loss": 0.012, "val_auc": 1.0, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9796, "val_f1": 0.9972, "class_loss": 0.0109, "domain_loss": 1.2406, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9565, "is_best": true}, {"ep": 20, "train_loss": 1.2514, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2405, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9585, "is_best": false}, {"ep": 21, "train_loss": 1.2514, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2405, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9602, "is_best": false}, {"ep": 22, "train_loss": 1.2514, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2405, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9616, "is_best": false}, {"ep": 23, "train_loss": 1.2514, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2405, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9629, "is_best": false}, {"ep": 24, "train_loss": 1.2514, "val_loss": 0.012, "val_auc": 0.99999, "val_acc": 0.9956, "val_sens": 1.0, "val_spec": 0.9714, "val_f1": 0.9976, "class_loss": 0.0109, "domain_loss": 1.2405, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.964, "is_best": false}], "5": [{"ep": 0, "train_loss": 1.5809, "val_loss": 0.0225, "val_auc": 0.99987, "val_acc": 0.9877, "val_sens": 0.9989, "val_spec": 0.9228, "val_f1": 0.9932, "class_loss": 0.1111, "domain_loss": 1.4698, "domain_acc_src": 0.448, "domain_acc_tgt": 0.552, "alpha": 0.0987, "is_best": false}, {"ep": 1, "train_loss": 1.4929, "val_loss": 0.0251, "val_auc": 0.99984, "val_acc": 0.9889, "val_sens": 0.9968, "val_spec": 0.9452, "val_f1": 0.9938, "class_loss": 0.0441, "domain_loss": 1.4488, "domain_acc_src": 0.4583, "domain_acc_tgt": 0.5417, "alpha": 0.2898, "is_best": false}, {"ep": 2, "train_loss": 1.4008, "val_loss": 0.0206, "val_auc": 0.99985, "val_acc": 0.9902, "val_sens": 0.9978, "val_spec": 0.9488, "val_f1": 0.9944, "class_loss": 0.0299, "domain_loss": 1.3709, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.5, "is_best": false}, {"ep": 3, "train_loss": 1.3378, "val_loss": 0.0194, "val_auc": 0.99981, "val_acc": 0.9914, "val_sens": 0.9978, "val_spec": 0.9561, "val_f1": 0.995, "class_loss": 0.0255, "domain_loss": 1.3123, "domain_acc_src": 0.5072, "domain_acc_tgt": 0.4928, "alpha": 0.6457, "is_best": false}, {"ep": 4, "train_loss": 1.3217, "val_loss": 0.0198, "val_auc": 0.99988, "val_acc": 0.9914, "val_sens": 0.9978, "val_spec": 0.9561, "val_f1": 0.995, "class_loss": 0.0242, "domain_loss": 1.2975, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.7311, "is_best": false}, {"ep": 5, "train_loss": 1.299, "val_loss": 0.018, "val_auc": 0.99988, "val_acc": 0.9926, "val_sens": 0.9989, "val_spec": 0.9598, "val_f1": 0.9957, "class_loss": 0.0201, "domain_loss": 1.279, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.7834, "is_best": false}, {"ep": 6, "train_loss": 1.2803, "val_loss": 0.016, "val_auc": 0.99996, "val_acc": 0.9941, "val_sens": 0.9989, "val_spec": 0.9768, "val_f1": 0.9962, "class_loss": 0.016, "domain_loss": 1.2643, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8209, "is_best": true}, {"ep": 7, "train_loss": 1.266, "val_loss": 0.0175, "val_auc": 0.99994, "val_acc": 0.9938, "val_sens": 0.9989, "val_spec": 0.9634, "val_f1": 0.9959, "class_loss": 0.0178, "domain_loss": 1.2482, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8494, "is_best": false}, {"ep": 8, "train_loss": 1.2588, "val_loss": 0.0171, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0172, "domain_loss": 1.2416, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8716, "is_best": false}, {"ep": 9, "train_loss": 1.2555, "val_loss": 0.0168, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2388, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.8893, "is_best": false}, {"ep": 10, "train_loss": 1.2538, "val_loss": 0.0168, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2371, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9036, "is_best": false}, {"ep": 11, "train_loss": 1.2531, "val_loss": 0.0168, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2364, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9152, "is_best": false}, {"ep": 12, "train_loss": 1.2527, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2360, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9246, "is_best": false}, {"ep": 13, "train_loss": 1.2525, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2358, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9323, "is_best": false}, {"ep": 14, "train_loss": 1.2524, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2357, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9386, "is_best": false}, {"ep": 15, "train_loss": 1.2523, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2356, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9437, "is_best": false}, {"ep": 16, "train_loss": 1.2523, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2356, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9479, "is_best": false}, {"ep": 17, "train_loss": 1.2523, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2356, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9513, "is_best": false}, {"ep": 18, "train_loss": 1.2523, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2356, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9542, "is_best": false}, {"ep": 19, "train_loss": 1.2522, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2355, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9565, "is_best": false}, {"ep": 20, "train_loss": 1.2522, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2355, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9585, "is_best": false}, {"ep": 21, "train_loss": 1.2522, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2355, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9602, "is_best": false}, {"ep": 22, "train_loss": 1.2522, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2355, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9616, "is_best": false}, {"ep": 23, "train_loss": 1.2522, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2355, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.9629, "is_best": false}, {"ep": 24, "train_loss": 1.2522, "val_loss": 0.0167, "val_auc": 0.99994, "val_acc": 0.9926, "val_sens": 0.9978, "val_spec": 0.9634, "val_f1": 0.9953, "class_loss": 0.0167, "domain_loss": 1.2355, "domain_acc_src": 0.5, "domain_acc_tgt": 0.5, "alpha": 0.964, "is_best": false}]};
+
+const FOLD_META = {
+  1: { best_epoch: 8 },
+  2: { best_epoch: 8 },
+  3: { best_epoch: 4 },
+  4: { best_epoch: 19 },
+  5: { best_epoch: 6 },
+};
+
+// ─── CHART DEFAULTS ────────────────────────────────────────────────────
+Chart.defaults.color = '#7b94b0';
+Chart.defaults.font.family = "'Space Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const GRID_COLOR = 'rgba(0,200,255,0.06)';
+const TICK_COLOR = '#3d5571';
+
+const baseOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: { boxWidth: 10, padding: 14, font: { size: 9 } }
+    },
+    tooltip: {
+      backgroundColor: '#0d1520',
+      borderColor: 'rgba(0,200,255,0.2)',
+      borderWidth: 1,
+      padding: 10,
+      titleFont: { family: "'Space Mono',monospace", size: 10 },
+      bodyFont: { family: "'Space Mono',monospace", size: 10 },
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: GRID_COLOR },
+      ticks: { color: TICK_COLOR, font: { size: 9 } },
+    },
+    y: {
+      grid: { color: GRID_COLOR },
+      ticks: { color: TICK_COLOR, font: { size: 9 } },
+    }
+  }
+};
+
+// ─── CHART INSTANCES ───────────────────────────────────────────────────
+let perfChart, lossChart, lossCompChart, alphaChart, domainChart;
+
+function getEpochs(fold) { return EPOCH_DATA[fold].map(e => `Ep ${e.ep}`); }
+
+function makeDataset(label, data, color, dash=[]) {
+  return {
+    label,
+    data,
+    borderColor: color,
+    backgroundColor: color.replace(')', ', 0.08)').replace('rgb', 'rgba'),
+    borderWidth: 2,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    tension: 0.3,
+    fill: false,
+    borderDash: dash,
+  };
+}
+
+function buildBestAnnotation(fold) {
+  const be = FOLD_META[fold].best_epoch;
+  return {
+    type: 'line',
+    xMin: be, xMax: be,
+    borderColor: 'rgba(0,200,255,0.4)',
+    borderDash: [4,3],
+    borderWidth: 1,
+    label: { content: `Best`, display: true, position: 'start', font: { size: 8 }, color: '#00c8ff', backgroundColor: 'transparent' }
+  };
+}
+
+function addBestLine(chartData, fold) {
+  const be = FOLD_META[fold].best_epoch;
+  chartData.datasets.forEach(ds => {
+    ds.pointBackgroundColor = ds.data.map((_, i) => i === be ? 'rgba(0,200,255,1)' : 'transparent');
+    ds.pointBorderColor = ds.data.map((_, i) => i === be ? 'rgba(0,200,255,1)' : 'transparent');
+    ds.pointRadius = ds.data.map((_, i) => i === be ? 6 : 3);
+  });
+}
+
+function initCharts(fold) {
+  const fdata = EPOCH_DATA[fold];
+  const labels = fdata.map(e => e.ep);
+  const be = FOLD_META[fold].best_epoch;
+  document.getElementById('best-epoch-label').textContent = `Best: Ep ${be}`;
+
+  // ── Perf Chart
+  const perfData = {
+    labels,
+    datasets: [
+      makeDataset('Val AUC', fdata.map(e=>e.val_auc), '#00c8ff'),
+      makeDataset('Sensitivity', fdata.map(e=>e.val_sens), '#00e5a0'),
+      makeDataset('Specificity', fdata.map(e=>e.val_spec), '#ffb830'),
+    ]
+  };
+  addBestLine(perfData, fold);
+
+  if (perfChart) perfChart.destroy();
+  perfChart = new Chart(document.getElementById('perfChart'), {
+    type: 'line',
+    data: perfData,
+    options: {
+      ...JSON.parse(JSON.stringify(baseOptions)),
+      scales: {
+        x: { title: { display: true, text: 'Epoch', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 } } },
+        y: { min: 0.88, max: 1.01, title: { display: true, text: 'Score', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 }, callback: v => v.toFixed(2) } }
+      }
+    }
+  });
+
+  // ── Loss Chart
+  const lossData = {
+    labels,
+    datasets: [
+      makeDataset('Train Loss', fdata.map(e=>e.train_loss), '#a78bfa'),
+      makeDataset('Val Loss', fdata.map(e=>e.val_loss), '#00e5a0'),
+    ]
+  };
+  if (lossChart) lossChart.destroy();
+  lossChart = new Chart(document.getElementById('lossChart'), {
+    type: 'line',
+    data: lossData,
+    options: {
+      ...JSON.parse(JSON.stringify(baseOptions)),
+      scales: {
+        x: { title: { display: true, text: 'Epoch', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 } } },
+        y: { title: { display: true, text: 'Loss', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 }, callback: v => v.toFixed(3) } }
+      }
+    }
+  });
+
+  // ── Loss Comp Chart
+  const lossCompData = {
+    labels,
+    datasets: [
+      makeDataset('Class. Loss', fdata.map(e=>e.class_loss), '#00c8ff'),
+      makeDataset('Domain Loss', fdata.map(e=>e.domain_loss), '#ff4d6a', [6,3]),
+    ]
+  };
+  if (lossCompChart) lossCompChart.destroy();
+  lossCompChart = new Chart(document.getElementById('lossCompChart'), {
+    type: 'line',
+    data: lossCompData,
+    options: {
+      ...JSON.parse(JSON.stringify(baseOptions)),
+      scales: {
+        x: { title: { display: true, text: 'Epoch', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 } } },
+        y: { title: { display: true, text: 'Loss', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 }, callback: v => v.toFixed(3) } }
+      }
+    }
+  });
+
+  // ── Alpha Chart (use fold 1 for all — same schedule)
+  const f1 = EPOCH_DATA[1];
+  const alphaData = {
+    labels: f1.map(e=>e.ep),
+    datasets: [
+      {
+        label: 'λ (GRL Alpha)',
+        data: f1.map(e=>e.alpha),
+        borderColor: '#00c8ff',
+        backgroundColor: 'rgba(0,200,255,0.05)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+      }
+    ]
+  };
+  if (alphaChart) alphaChart.destroy();
+  alphaChart = new Chart(document.getElementById('alphaChart'), {
+    type: 'line',
+    data: alphaData,
+    options: {
+      ...JSON.parse(JSON.stringify(baseOptions)),
+      scales: {
+        x: { title: { display: true, text: 'Epoch', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 } } },
+        y: { min: 0, max: 1.05, title: { display: true, text: 'Alpha λ', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 }, callback: v => v.toFixed(2) } }
+      }
+    }
+  });
+
+  // ── Domain Acc Chart
+  const domainData = {
+    labels: fdata.map(e=>e.ep),
+    datasets: [
+      makeDataset('Domain Acc — Source', fdata.map(e=>e.domain_acc_src), '#00e5a0'),
+      makeDataset('Domain Acc — Target', fdata.map(e=>e.domain_acc_tgt), '#ff4d6a', [4,3]),
+      {
+        label: 'Chance (0.5)',
+        data: fdata.map(()=>0.5),
+        borderColor: 'rgba(255,255,255,0.12)',
+        borderDash: [2,4],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+      }
+    ]
+  };
+  if (domainChart) domainChart.destroy();
+  domainChart = new Chart(document.getElementById('domainChart'), {
+    type: 'line',
+    data: domainData,
+    options: {
+      ...JSON.parse(JSON.stringify(baseOptions)),
+      scales: {
+        x: { title: { display: true, text: 'Epoch', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 } } },
+        y: { min: 0.35, max: 0.65, title: { display: true, text: 'Accuracy', font: { size: 9 }, color: '#3d5571' }, grid: { color: GRID_COLOR }, ticks: { color: TICK_COLOR, font: { size: 9 }, callback: v => v.toFixed(2) } }
+      }
+    }
+  });
+}
+
+function selectFold(fold, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  initCharts(fold);
+}
+
+// Init with fold 1
+initCharts(1);
+</script>
+</body>
+</html>
